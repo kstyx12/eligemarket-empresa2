@@ -1,9 +1,6 @@
-// ⚠️ INSTANCIA 2 — PENDIENTE DE CONFIGURAR
-// Reemplaza estas dos líneas con la URL y la key del proyecto Supabase NUEVO
-// (Supabase → Settings → API). Mientras diga 'TU_PROYECTO', la app funciona
-// en modo localStorage y NO se conecta a ninguna base de datos.
-const SUPABASE_URL = 'https://TU_PROYECTO.supabase.co'
-const SUPABASE_ANON_KEY = 'TU_ANON_KEY_AQUI'
+// INSTANCIA 2 — apunta a su propio proyecto Supabase (datos aislados)
+const SUPABASE_URL = 'https://xkdphzjllvwzrpghajva.supabase.co'
+const SUPABASE_ANON_KEY = 'sb_publishable_6hqc0kmG4Tkea4EOeeGvfQ_UoAmT9Dh'
 
 let supabaseClient = null
 
