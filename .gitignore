@@ -1,0 +1,8 @@
+node_modules/
+dist/
+.playwright-mcp/
+*.local
+.DS_Store
+MI-API-KEY.txt
+secretos.txt
+supabase/.temp/
