@@ -82,6 +82,7 @@ alter table productos add column if not exists precio_ruta_minimo integer defaul
 alter table productos add column if not exists precio_mayorista numeric default 0;
 alter table productos add column if not exists precio_mayorista_minimo integer default 12;
 alter table productos add column if not exists imagen_url text;
+alter table productos add column if not exists sin_stock boolean default false;
 
 -- 6. VENTAS
 create table if not exists ventas (
