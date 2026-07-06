@@ -5,6 +5,7 @@ import { useAuth, useToast } from '../lib/context.jsx'
 import { uploadFotoProducto } from '../lib/visitas.js'
 import { generarCatalogoPDF } from '../lib/pdfCatalogo.js'
 import { getProductos, createProducto, updateProducto, deleteProducto } from '../lib/db.js'
+import { thumb } from '../lib/img.js'
 import { Plus, Edit2, LayoutGrid, List, X, Package, Search, Download, Upload, Trash2, AlertTriangle, FileText } from 'lucide-react'
 
 // Categorías cargadas dinámicamente desde productos
@@ -356,7 +357,8 @@ export default function Catalogo() {
                     <tr key={p.id} style={!p.activo ? { opacity: .5 } : {}}>
                       <td data-label="Foto">
                         {p.imagen_url ? (
-                          <img src={p.imagen_url} alt={p.descripcion}
+                          <img src={thumb(p.imagen_url, 80)} alt={p.descripcion} loading="lazy"
+                            onError={e => { e.currentTarget.onerror = null; e.currentTarget.src = p.imagen_url }}
                             style={{ width: 40, height: 40, borderRadius: 6, objectFit: 'cover', cursor: 'pointer', border: '1px solid var(--border)' }}
                             onClick={() => window.open(p.imagen_url, '_blank')} />
                         ) : (
@@ -449,7 +451,8 @@ export default function Catalogo() {
             {productos.map(p => (
               <div key={p.id} className="product-card" onClick={() => setDetalle(p)} style={!p.activo ? { opacity: .5 } : {}}>
                 {p.imagen_url ? (
-                <img src={p.imagen_url} alt={p.descripcion}
+                <img src={thumb(p.imagen_url, 300)} alt={p.descripcion} loading="lazy"
+                  onError={e => { e.currentTarget.onerror = null; e.currentTarget.src = p.imagen_url }}
                   style={{ width: '100%', height: 100, objectFit: 'cover', borderRadius: 8, marginBottom: 8 }} />
               ) : (
                 <div style={{ width: '100%', height: 80, background: 'var(--bg)', borderRadius: 8, marginBottom: 8, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '2rem' }}>📦</div>

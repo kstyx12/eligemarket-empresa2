@@ -4,6 +4,7 @@ import Layout from '../components/Layout.jsx'
 import { useAuth, useToast } from '../lib/context.jsx'
 import { getClientes, createCliente, updateCliente, deleteCliente, getUsuarios } from '../lib/db.js'
 import { getVisitas, createVisita, uploadFotoCliente, getGPS } from '../lib/visitas.js'
+import { thumb } from '../lib/img.js'
 import { Plus, Edit2, Trash2, Phone, MessageCircle, MapPin, X, User, Building2, Camera, Navigation, Clock, CheckCircle, Eye } from 'lucide-react'
 
 const EMPTY = {
@@ -260,7 +261,8 @@ export default function Clientes() {
                 <tr key={c.id}>
                   <td data-label="Foto">
                     {c.imagen_url ? (
-                      <img src={c.imagen_url} alt="local"
+                      <img src={thumb(c.imagen_url, 88)} alt="local" loading="lazy"
+                        onError={e => { e.currentTarget.onerror = null; e.currentTarget.src = c.imagen_url }}
                         style={{ width: 44, height: 44, borderRadius: 8, objectFit: 'cover', cursor: 'pointer', border: '2px solid var(--border)' }}
                         onClick={() => window.open(c.imagen_url, '_blank')} />
                     ) : (

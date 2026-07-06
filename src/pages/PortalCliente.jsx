@@ -2,6 +2,7 @@
 import { useState, useEffect } from 'react'
 import { useAuth } from '../lib/context.jsx'
 import { getProductos, createPedidoCliente, getPedidosCliente, getClientes } from '../lib/db.js'
+import { thumb } from '../lib/img.js'
 import { LogOut, ShoppingCart, Search, X, ChevronDown, ChevronUp, Plus, Minus, Trash2, Send, Clock, Check, XCircle } from 'lucide-react'
 
 function fmt(n) { return '$' + Math.round(n || 0).toLocaleString('es-CL') }
@@ -270,7 +271,7 @@ export default function PortalCliente() {
                             <div key={p.id} style={{ padding: 10, borderRight: '1px solid #f0f0f0', borderBottom: '1px solid #f0f0f0', background: '#fff' }}>
                               <div onClick={() => setDetalle(p)} style={{ cursor: 'pointer' }}>
                                 <div style={{ width: '100%', height: 100, marginBottom: 6, borderRadius: 8, overflow: 'hidden', background: '#f5f5f5' }}>
-                                  {p.imagen_url ? <img src={p.imagen_url} alt={p.descripcion} style={{ width: '100%', height: '100%', objectFit: 'contain' }} /> : <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '2rem' }}>📦</div>}
+                                  {p.imagen_url ? <img src={thumb(p.imagen_url, 300)} alt={p.descripcion} loading="lazy" onError={e => { e.currentTarget.onerror = null; e.currentTarget.src = p.imagen_url }} style={{ width: '100%', height: '100%', objectFit: 'contain' }} /> : <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '2rem' }}>📦</div>}
                                 </div>
                                 <div style={{ fontSize: '.7rem', color: '#999', fontFamily: 'monospace', marginBottom: 2 }}>{p.codigo}</div>
                                 <div style={{ fontWeight: 700, fontSize: '.8rem', lineHeight: 1.3, marginBottom: 5, minHeight: 28 }}>{p.descripcion}</div>
