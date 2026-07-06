@@ -569,4 +569,46 @@ export async function countPedidosPendientes(vendedor_id = null) {
   return data.length
 }
 
+// ── CONSULTAS LIGERAS PARA EL DASHBOARD ────────────────────────────────────────
+// Solo cuentan/resumen, sin bajar filas completas ni datos anidados pesados.
+export async function countClientes(filters = {}) {
+  if (isSupabaseConfigured()) {
+    try {
+      const sb = await getSupabase()
+      let q = sb.from('clientes').select('id', { count: 'exact', head: true })
+      if (filters.vendedor_id) q = q.eq('vendedor_id', filters.vendedor_id)
+      const { count } = await q
+      return count || 0
+    } catch (e) { console.error('countClientes error:', e) }
+  }
+  return (await getClientes(filters)).length
+}
+
+export async function countRutas(vendedor_id = null) {
+  if (isSupabaseConfigured()) {
+    try {
+      const sb = await getSupabase()
+      let q = sb.from('rutas').select('id', { count: 'exact', head: true })
+      if (vendedor_id) q = q.eq('vendedor_id', vendedor_id)
+      const { count } = await q
+      return count || 0
+    } catch (e) { console.error('countRutas error:', e) }
+  }
+  return (await getRutas(vendedor_id)).length
+}
+
+// Ventas sin los ítems (venta_items) — para el Dashboard basta total + datos básicos.
+export async function getVentasResumen(filters = {}) {
+  if (isSupabaseConfigured()) {
+    try {
+      const sb = await getSupabase()
+      let q = sb.from('ventas').select('id,cliente_nombre,total,created_at,clientes(nombre)').order('created_at', { ascending: false })
+      if (filters.vendedor_id) q = q.eq('vendedor_id', filters.vendedor_id)
+      const { data } = await q
+      if (data) return data
+    } catch (e) { console.error('getVentasResumen error:', e) }
+  }
+  return getVentas(filters)
+}
+
 export { isSupabaseConfigured }

@@ -2,7 +2,7 @@
 import { useState, useEffect } from 'react'
 import Layout from '../components/Layout.jsx'
 import { useAuth } from '../lib/context.jsx'
-import { getClientes, getRutas, getVentas, getPedidosCliente } from '../lib/db.js'
+import { countClientes, countRutas, getVentasResumen, getPedidosCliente } from '../lib/db.js'
 import { Users, MapPin, ShoppingCart, TrendingUp, Clock, ArrowRight, Bell } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
 
@@ -21,15 +21,15 @@ export default function Dashboard() {
   useEffect(() => {
     async function load() {
       const filtros = user.role === 'vendedor' ? { vendedor_id: user.id } : {}
-      const [clientes, rutas, ventas] = await Promise.all([
-        getClientes(filtros),
-        getRutas(user.role === 'vendedor' ? user.id : null),
-        getVentas(filtros)
+      const [clientesCount, rutasCount, ventas, pendientes] = await Promise.all([
+        countClientes(filtros),
+        countRutas(user.role === 'vendedor' ? user.id : null),
+        getVentasResumen(filtros),
+        getPedidosCliente({ vendedor_id: user.role === 'vendedor' ? user.id : undefined, estado: 'pendiente' })
       ])
       const facturacion = ventas.reduce((s, v) => s + (v.total || 0), 0)
-      const pendientes = await getPedidosCliente({ vendedor_id: user.role === 'vendedor' ? user.id : undefined, estado: 'pendiente' })
       setPedidosPendientes(pendientes)
-      setStats({ clientes: clientes.length, rutas: rutas.length, pedidos: ventas.length, facturacion })
+      setStats({ clientes: clientesCount, rutas: rutasCount, pedidos: ventas.length, facturacion })
       setRecientes(ventas.slice(0, 5))
       setLoading(false)
     }
