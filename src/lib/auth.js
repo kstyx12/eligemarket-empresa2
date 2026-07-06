@@ -32,7 +32,7 @@ export async function login(username, password) {
           .select('*')
           .eq('username', username.trim())
           .eq('password', password.trim())
-          .single()
+          .maybeSingle()
         if (!error && data) {
           const user = { id: data.id, username: data.username, role: data.role, nombre: data.nombre }
           localStorage.setItem('em_session', JSON.stringify(user))
@@ -46,7 +46,7 @@ export async function login(username, password) {
           .from('clientes')
           .select('*')
           .ilike('username', usernameTrimmed)
-          .single()
+          .maybeSingle()
         if (!clienteError && clienteData && clienteData.password === passwordTrimmed) {
           const user = {
             id: clienteData.id,
