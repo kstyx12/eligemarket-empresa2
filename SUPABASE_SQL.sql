@@ -96,6 +96,7 @@ create table if not exists ventas (
   total numeric default 0,
   created_at timestamptz default now()
 );
+alter table ventas add column if not exists plazo_despacho text;
 
 -- 7. VENTA_ITEMS
 create table if not exists venta_items (
@@ -109,6 +110,7 @@ create table if not exists venta_items (
   descuento_item numeric default 0,
   subtotal numeric default 0
 );
+alter table venta_items add column if not exists costo numeric default 0;
 
 -- 8. PEDIDOS_CLIENTE (pedidos entrantes desde el portal del cliente)
 create table if not exists pedidos_cliente (
@@ -125,6 +127,9 @@ create table if not exists pedidos_cliente (
   created_at timestamptz default now(),
   updated_at timestamptz default now()
 );
+alter table pedidos_cliente add column if not exists descuento_global numeric default 0;
+alter table pedidos_cliente add column if not exists notas_vendedor text;
+alter table pedidos_cliente add column if not exists vendedor_nombre text;
 
 -- 9. VISITAS (registro de visitas del vendedor a clientes)
 create table if not exists visitas (
