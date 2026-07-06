@@ -261,7 +261,7 @@ export default function Clientes() {
                 <tr key={c.id}>
                   <td data-label="Foto">
                     {c.imagen_url ? (
-                      <img src={thumb(c.imagen_url, 88)} alt="local" loading="lazy"
+                      <img src={thumb(c.imagen_url, 140, 80)} alt="local" loading="lazy"
                         onError={e => { e.currentTarget.onerror = null; e.currentTarget.src = c.imagen_url }}
                         style={{ width: 44, height: 44, borderRadius: 8, objectFit: 'cover', cursor: 'pointer', border: '2px solid var(--border)' }}
                         onClick={() => window.open(c.imagen_url, '_blank')} />
