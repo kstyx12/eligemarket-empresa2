@@ -5,6 +5,7 @@ import { useAuth, useToast } from '../lib/context.jsx'
 import { getVentas, getClientes, getUsuarios, getProductos } from '../lib/db.js'
 import { getVisitas } from '../lib/visitas.js'
 import { generarInsightsIA } from '../lib/ai.js'
+import { montoReal, factorEntrega, estadoVenta, ESTADOS_ENTREGA, ORDEN_ESTADOS } from '../lib/entrega.js'
 import {
   TrendingUp, TrendingDown, Users, ShoppingCart, Download, RefreshCw,
   Package, Link2, AlertTriangle, ArrowUpDown, ChevronRight, X,
@@ -299,7 +300,8 @@ export default function Reportes() {
   }, [productos])
 
   // ── KPIs globales ─────────────────────────────────────────────────────────
-  const totalVentas = ventasFilt.reduce((s, v) => s + (v.total || 0), 0)
+  // Facturación = monto REALMENTE entregado (entregada=total, parcial=monto, devuelta/pendiente=0)
+  const totalVentas = ventasFilt.reduce((s, v) => s + montoReal(v), 0)
   const ticketPromedio = ventasFilt.length ? totalVentas / ventasFilt.length : 0
 
   // ══════════════════ ANÁLISIS POR CLIENTE ══════════════════
@@ -315,18 +317,19 @@ export default function Reportes() {
         })
       }
       const c = map.get(id)
+      const factor = factorEntrega(v)
       c.pedidos += 1
-      c.total += Number(v.total || 0)
+      c.total += montoReal(v)
       const fecha = v.created_at
       if (!c.ultima || fecha > c.ultima) c.ultima = fecha
       if (!c.primera || fecha < c.primera) c.primera = fecha
       ;(v.venta_items || []).forEach(i => {
         const cant = Number(i.cantidad || 0)
         c.unidades += cant
-        c.costo += Number(i.costo || 0) * cant
+        c.costo += Number(i.costo || 0) * cant * factor
         const k = i.descripcion || itemKey(i)
         const prev = c.productos.get(k) || { qty: 0, total: 0 }
-        prev.qty += cant; prev.total += Number(i.subtotal || 0)
+        prev.qty += cant; prev.total += Number(i.subtotal || 0) * factor
         c.productos.set(k, prev)
       })
     })
@@ -358,6 +361,7 @@ export default function Reportes() {
     const map = new Map()
     ventasFilt.forEach(v => {
       const clienteId = v.cliente_id ?? v.cliente_nombre
+      const factor = factorEntrega(v)
       ;(v.venta_items || []).forEach(i => {
         const k = itemKey(i)
         if (!map.has(k)) {
@@ -371,8 +375,8 @@ export default function Reportes() {
         const p = map.get(k)
         const cant = Number(i.cantidad || 0)
         p.unidades += cant
-        p.facturacion += Number(i.subtotal || 0)
-        p.costo += Number(i.costo || 0) * cant
+        p.facturacion += Number(i.subtotal || 0) * factor
+        p.costo += Number(i.costo || 0) * cant * factor
         p.pedidos.add(v.id)
         if (clienteId != null) p.clientes.add(clienteId)
       })
@@ -393,7 +397,8 @@ export default function Reportes() {
   const rentabilidad = useMemo(() => {
     let costo = 0
     ventasFilt.forEach(v => {
-      ;(v.venta_items || []).forEach(i => { costo += Number(i.costo || 0) * Number(i.cantidad || 0) })
+      const factor = factorEntrega(v)
+      ;(v.venta_items || []).forEach(i => { costo += Number(i.costo || 0) * Number(i.cantidad || 0) * factor })
     })
     const ganancia = totalVentas - costo
     const margenPonderado = totalVentas > 0 ? (ganancia / totalVentas) * 100 : 0
@@ -401,6 +406,21 @@ export default function Reportes() {
     const margenSimple = margenesProd.length ? margenesProd.reduce((s, m) => s + m, 0) / margenesProd.length : 0
     return { costo, ganancia, margenPonderado, margenSimple, tieneCosto: costo > 0 }
   }, [ventasFilt, totalVentas, analisisProductos])
+
+  // ══════════════════ DESGLOSE POR ESTADO DE ENTREGA ══════════════════
+  const desgloseEntrega = useMemo(() => {
+    const g = {}
+    ORDEN_ESTADOS.forEach(e => { g[e] = { n: 0, monto: 0, teorico: 0 } })
+    ventasFilt.forEach(v => {
+      const e = estadoVenta(v)
+      if (!g[e]) g[e] = { n: 0, monto: 0, teorico: 0 }
+      g[e].n += 1
+      g[e].monto += montoReal(v)
+      g[e].teorico += Number(v.total || 0)
+    })
+    const teoricoTotal = ventasFilt.reduce((s, v) => s + Number(v.total || 0), 0)
+    return { g, teoricoTotal, realTotal: totalVentas, perdido: teoricoTotal - totalVentas }
+  }, [ventasFilt, totalVentas])
 
   // Por categoría
   const analisisCategorias = useMemo(() => {
@@ -770,6 +790,29 @@ export default function Reportes() {
           {/* ═══════════════ TAB RESUMEN ═══════════════ */}
           {tab === 'resumen' && (
             <>
+              {/* Desglose por estado de entrega */}
+              <Card title="🚚 Entregas del período">
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(150px, 1fr))', gap: 10 }}>
+                  {ORDEN_ESTADOS.map(e => {
+                    const cfg = ESTADOS_ENTREGA[e]
+                    const d = desgloseEntrega.g[e] || { n: 0, monto: 0 }
+                    return (
+                      <div key={e} style={{ background: cfg.bg, borderRadius: 8, padding: 12, borderLeft: `4px solid ${cfg.color}` }}>
+                        <div style={{ fontSize: '.72rem', fontWeight: 700, color: cfg.color, textTransform: 'uppercase', letterSpacing: '.03em' }}>{cfg.icon} {cfg.label}</div>
+                        <div style={{ fontWeight: 800, fontSize: '1.1rem', marginTop: 4 }}>{fmtMoney(d.monto)}</div>
+                        <div style={{ fontSize: '.72rem', color: 'var(--text-secondary)' }}>{d.n} venta{d.n === 1 ? '' : 's'}</div>
+                      </div>
+                    )
+                  })}
+                </div>
+                <div className="text-sm" style={{ marginTop: 10, display: 'flex', justifyContent: 'space-between', flexWrap: 'wrap', gap: 8 }}>
+                  <span className="text-muted">Facturación real: <strong style={{ color: 'var(--green)' }}>{fmtMoney(desgloseEntrega.realTotal)}</strong> de {fmtMoney(desgloseEntrega.teoricoTotal)} en pedidos</span>
+                  {desgloseEntrega.perdido > 0 && (
+                    <span style={{ color: '#c0392b', fontWeight: 700 }}>No entregado/devuelto: −{fmtMoney(desgloseEntrega.perdido)}</span>
+                  )}
+                </div>
+              </Card>
+
               {/* Crecimiento vs período anterior + Proyección del mes */}
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))', gap: 16, marginBottom: 16 }}>
                 {crecimiento && (

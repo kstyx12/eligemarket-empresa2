@@ -97,6 +97,9 @@ create table if not exists ventas (
   created_at timestamptz default now()
 );
 alter table ventas add column if not exists plazo_despacho text;
+-- Estado de entrega: entregada (default) / parcial / devuelta / pendiente
+alter table ventas add column if not exists estado_entrega text default 'entregada';
+alter table ventas add column if not exists monto_entregado numeric;  -- monto realmente entregado (para parciales)
 
 -- 7. VENTA_ITEMS
 create table if not exists venta_items (

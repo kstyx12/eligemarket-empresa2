@@ -3,6 +3,7 @@ import { useState, useEffect } from 'react'
 import Layout from '../components/Layout.jsx'
 import { useAuth } from '../lib/context.jsx'
 import { countClientes, countRutas, getVentasResumen, getPedidosCliente } from '../lib/db.js'
+import { montoReal } from '../lib/entrega.js'
 import { Users, MapPin, ShoppingCart, TrendingUp, Clock, ArrowRight, Bell } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
 
@@ -27,7 +28,7 @@ export default function Dashboard() {
         getVentasResumen(filtros),
         getPedidosCliente({ vendedor_id: user.role === 'vendedor' ? user.id : undefined, estado: 'pendiente' })
       ])
-      const facturacion = ventas.reduce((s, v) => s + (v.total || 0), 0)
+      const facturacion = ventas.reduce((s, v) => s + montoReal(v), 0)
       setPedidosPendientes(pendientes)
       setStats({ clientes: clientesCount, rutas: rutasCount, pedidos: ventas.length, facturacion })
       setRecientes(ventas.slice(0, 5))

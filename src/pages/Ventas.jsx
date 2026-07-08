@@ -3,7 +3,8 @@ import { useState, useEffect } from 'react'
 import { useNavigate, useLocation } from 'react-router-dom'
 import Layout from '../components/Layout.jsx'
 import { useAuth, useToast } from '../lib/context.jsx'
-import { getVentas, deleteVenta, getClientes, getProductos, createVenta, getUsuarios } from '../lib/db.js'
+import { getVentas, deleteVenta, updateVenta, getClientes, getProductos, createVenta, getUsuarios } from '../lib/db.js'
+import { ESTADOS_ENTREGA, ORDEN_ESTADOS, estadoVenta } from '../lib/entrega.js'
 import { generarPedidoPDF } from '../lib/pdfGenerator.js'
 import {
   Plus, Trash2, X, ShoppingCart, FileText, Search,
@@ -456,6 +457,17 @@ export default function Ventas() {
     load()
   }
 
+  async function actualizarVenta(id, changes) {
+    setVentas(vs => vs.map(v => v.id === id ? { ...v, ...changes } : v))
+    await updateVenta(id, changes)
+  }
+  function cambiarEstado(v, nuevo) {
+    const changes = { estado_entrega: nuevo }
+    changes.monto_entregado = nuevo === 'parcial' ? (v.monto_entregado ?? Math.round(Number(v.total || 0) / 2)) : null
+    actualizarVenta(v.id, changes)
+    toast('Estado de entrega actualizado', 'success')
+  }
+
   const totalFacturacion = ventas.reduce((s, v) => s + (v.total || 0), 0)
 
   return (
@@ -503,7 +515,25 @@ export default function Ventas() {
                       </div>
                     </div>
                   </div>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+                    {(() => {
+                      const est = estadoVenta(v)
+                      const cfg = ESTADOS_ENTREGA[est]
+                      return (
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                          <select value={est} onChange={e => cambiarEstado(v, e.target.value)} title="Estado de entrega"
+                            style={{ fontSize: '.72rem', fontWeight: 700, color: cfg.color, background: cfg.bg, border: `1px solid ${cfg.color}55`, borderRadius: 6, padding: '4px 6px', cursor: 'pointer' }}>
+                            {ORDEN_ESTADOS.map(k => <option key={k} value={k}>{ESTADOS_ENTREGA[k].icon} {ESTADOS_ENTREGA[k].label}</option>)}
+                          </select>
+                          {est === 'parcial' && (
+                            <input type="number" min="0" value={v.monto_entregado ?? ''}
+                              onChange={e => actualizarVenta(v.id, { monto_entregado: Number(e.target.value) })}
+                              placeholder="Entregado $" title="Monto realmente entregado"
+                              style={{ width: 96, fontSize: '.75rem', padding: '4px 6px', border: '1px solid var(--border)', borderRadius: 6 }} />
+                          )}
+                        </div>
+                      )
+                    })()}
                     <span style={{ fontWeight: 800, fontSize: '1.05rem', color: 'var(--green)' }}>{fmt(v.total)}</span>
                     <button className="btn btn-secondary btn-sm btn-icon" onClick={() => setExpanded(isOpen ? null : v.id)}>
                       {isOpen ? <ChevronUp size={16} /> : <ChevronDown size={16} />}

@@ -287,6 +287,19 @@ export async function createVenta(venta, items) {
   return nuevo
 }
 
+export async function updateVenta(id, changes) {
+  if (isSupabaseConfigured()) {
+    try {
+      const sb = await getSupabase()
+      const { data } = await sb.from('ventas').update(changes).eq('id', id).select().single()
+      if (data) return data
+    } catch (e) { console.error('updateVenta error:', e) }
+  }
+  const arr = lsGet('em_ventas').map(v => v.id === id ? { ...v, ...changes } : v)
+  lsSet('em_ventas', arr)
+  return arr.find(v => v.id === id)
+}
+
 export async function deleteVenta(id) {
   if (isSupabaseConfigured()) {
     try {
@@ -602,7 +615,7 @@ export async function getVentasResumen(filters = {}) {
   if (isSupabaseConfigured()) {
     try {
       const sb = await getSupabase()
-      let q = sb.from('ventas').select('id,cliente_nombre,total,created_at,clientes(nombre)').order('created_at', { ascending: false })
+      let q = sb.from('ventas').select('id,cliente_nombre,total,estado_entrega,monto_entregado,created_at,clientes(nombre)').order('created_at', { ascending: false })
       if (filters.vendedor_id) q = q.eq('vendedor_id', filters.vendedor_id)
       const { data } = await q
       if (data) return data
