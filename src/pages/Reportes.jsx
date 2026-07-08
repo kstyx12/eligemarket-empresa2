@@ -5,7 +5,7 @@ import { useAuth, useToast } from '../lib/context.jsx'
 import { getVentas, getClientes, getUsuarios, getProductos } from '../lib/db.js'
 import { getVisitas } from '../lib/visitas.js'
 import { generarInsightsIA } from '../lib/ai.js'
-import { montoReal, factorEntrega, estadoVenta, ESTADOS_ENTREGA, ORDEN_ESTADOS } from '../lib/entrega.js'
+import { montoReal, cantEntregada, subtotalEntregado, estadoVenta, ESTADOS_ENTREGA, ORDEN_ESTADOS } from '../lib/entrega.js'
 import {
   TrendingUp, TrendingDown, Users, ShoppingCart, Download, RefreshCw,
   Package, Link2, AlertTriangle, ArrowUpDown, ChevronRight, X,
@@ -317,19 +317,19 @@ export default function Reportes() {
         })
       }
       const c = map.get(id)
-      const factor = factorEntrega(v)
+      const e = estadoVenta(v)
       c.pedidos += 1
       c.total += montoReal(v)
       const fecha = v.created_at
       if (!c.ultima || fecha > c.ultima) c.ultima = fecha
       if (!c.primera || fecha < c.primera) c.primera = fecha
       ;(v.venta_items || []).forEach(i => {
-        const cant = Number(i.cantidad || 0)
+        const cant = cantEntregada(i, e)
         c.unidades += cant
-        c.costo += Number(i.costo || 0) * cant * factor
+        c.costo += Number(i.costo || 0) * cant
         const k = i.descripcion || itemKey(i)
         const prev = c.productos.get(k) || { qty: 0, total: 0 }
-        prev.qty += cant; prev.total += Number(i.subtotal || 0) * factor
+        prev.qty += cant; prev.total += subtotalEntregado(i, e)
         c.productos.set(k, prev)
       })
     })
@@ -361,7 +361,7 @@ export default function Reportes() {
     const map = new Map()
     ventasFilt.forEach(v => {
       const clienteId = v.cliente_id ?? v.cliente_nombre
-      const factor = factorEntrega(v)
+      const e = estadoVenta(v)
       ;(v.venta_items || []).forEach(i => {
         const k = itemKey(i)
         if (!map.has(k)) {
@@ -373,10 +373,10 @@ export default function Reportes() {
           })
         }
         const p = map.get(k)
-        const cant = Number(i.cantidad || 0)
+        const cant = cantEntregada(i, e)
         p.unidades += cant
-        p.facturacion += Number(i.subtotal || 0) * factor
-        p.costo += Number(i.costo || 0) * cant * factor
+        p.facturacion += subtotalEntregado(i, e)
+        p.costo += Number(i.costo || 0) * cant
         p.pedidos.add(v.id)
         if (clienteId != null) p.clientes.add(clienteId)
       })
@@ -397,8 +397,8 @@ export default function Reportes() {
   const rentabilidad = useMemo(() => {
     let costo = 0
     ventasFilt.forEach(v => {
-      const factor = factorEntrega(v)
-      ;(v.venta_items || []).forEach(i => { costo += Number(i.costo || 0) * Number(i.cantidad || 0) * factor })
+      const e = estadoVenta(v)
+      ;(v.venta_items || []).forEach(i => { costo += Number(i.costo || 0) * cantEntregada(i, e) })
     })
     const ganancia = totalVentas - costo
     const margenPonderado = totalVentas > 0 ? (ganancia / totalVentas) * 100 : 0

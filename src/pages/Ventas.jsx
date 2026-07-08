@@ -3,8 +3,8 @@ import { useState, useEffect } from 'react'
 import { useNavigate, useLocation } from 'react-router-dom'
 import Layout from '../components/Layout.jsx'
 import { useAuth, useToast } from '../lib/context.jsx'
-import { getVentas, deleteVenta, updateVenta, getClientes, getProductos, createVenta, getUsuarios } from '../lib/db.js'
-import { ESTADOS_ENTREGA, ORDEN_ESTADOS, estadoVenta } from '../lib/entrega.js'
+import { getVentas, deleteVenta, updateVenta, updateVentaItem, getClientes, getProductos, createVenta, getUsuarios } from '../lib/db.js'
+import { ESTADOS_ENTREGA, ORDEN_ESTADOS, estadoVenta, cantEntregada, montoReal, costoRealVenta, montoRealDesdeItems } from '../lib/entrega.js'
 import { generarPedidoPDF } from '../lib/pdfGenerator.js'
 import {
   Plus, Trash2, X, ShoppingCart, FileText, Search,
@@ -463,9 +463,23 @@ export default function Ventas() {
   }
   function cambiarEstado(v, nuevo) {
     const changes = { estado_entrega: nuevo }
-    changes.monto_entregado = nuevo === 'parcial' ? (v.monto_entregado ?? Math.round(Number(v.total || 0) / 2)) : null
+    changes.monto_entregado = nuevo === 'parcial' ? Number(v.total || 0) : null
     actualizarVenta(v.id, changes)
+    if (nuevo === 'parcial') setExpanded(v.id)
     toast('Estado de entrega actualizado', 'success')
+  }
+
+  // En entrega parcial: registra cuánto se entregó de un ítem y recalcula el ingreso real.
+  async function cambiarCantEntregada(ventaId, itemId, nuevaCant) {
+    let nuevoMonto = 0
+    setVentas(vs => vs.map(v => {
+      if (v.id !== ventaId) return v
+      const items = (v.venta_items || []).map(i => i.id === itemId ? { ...i, cantidad_entregada: nuevaCant } : i)
+      nuevoMonto = Math.round(montoRealDesdeItems(items, v.descuento_global))
+      return { ...v, venta_items: items, monto_entregado: nuevoMonto }
+    }))
+    await updateVentaItem(itemId, { cantidad_entregada: nuevaCant })
+    await updateVenta(ventaId, { monto_entregado: nuevoMonto })
   }
 
   const totalFacturacion = ventas.reduce((s, v) => s + (v.total || 0), 0)
@@ -503,6 +517,7 @@ export default function Ventas() {
           {ventas.map(v => {
             const isOpen = expanded === v.id
             const items = v.venta_items || []
+            const esParcial = estadoVenta(v) === 'parcial'
             return (
               <div key={v.id} className="table-wrap" style={{ overflow: 'visible' }}>
                 <div style={{ padding: '14px 18px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 8 }}>
@@ -526,10 +541,9 @@ export default function Ventas() {
                             {ORDEN_ESTADOS.map(k => <option key={k} value={k}>{ESTADOS_ENTREGA[k].icon} {ESTADOS_ENTREGA[k].label}</option>)}
                           </select>
                           {est === 'parcial' && (
-                            <input type="number" min="0" value={v.monto_entregado ?? ''}
-                              onChange={e => actualizarVenta(v.id, { monto_entregado: Number(e.target.value) })}
-                              placeholder="Entregado $" title="Monto realmente entregado"
-                              style={{ width: 96, fontSize: '.75rem', padding: '4px 6px', border: '1px solid var(--border)', borderRadius: 6 }} />
+                            <span title="Ingreso real entregado — edita las cantidades en el detalle" style={{ fontSize: '.72rem', color: cfg.color, fontWeight: 800 }}>
+                              → {fmt(montoReal(v))}
+                            </span>
                           )}
                         </div>
                       )
@@ -557,6 +571,7 @@ export default function Ventas() {
                         <tr style={{ background: 'var(--bg)' }}>
                           <th style={{ padding: '6px 10px', textAlign: 'left', fontSize: '.75rem', color: 'var(--text-secondary)', fontWeight: 700 }}>Producto</th>
                           <th style={{ padding: '6px 10px', textAlign: 'center', fontSize: '.75rem', color: 'var(--text-secondary)', fontWeight: 700 }}>Cant.</th>
+                          {esParcial && <th style={{ padding: '6px 10px', textAlign: 'center', fontSize: '.75rem', color: '#b07a00', fontWeight: 700 }}>Entregado</th>}
                           <th style={{ padding: '6px 10px', textAlign: 'right', fontSize: '.75rem', color: 'var(--text-secondary)', fontWeight: 700 }}>P. Unit.</th>
                           <th style={{ padding: '6px 10px', textAlign: 'right', fontSize: '.75rem', color: 'var(--text-secondary)', fontWeight: 700 }}>Subtotal</th>
                           {isAdmin && <th style={{ padding: '6px 10px', textAlign: 'right', fontSize: '.75rem', color: 'var(--text-secondary)', fontWeight: 700 }}>Margen</th>}
@@ -571,6 +586,15 @@ export default function Ventas() {
                             <tr key={idx} style={{ borderTop: '1px solid var(--border)' }}>
                               <td style={{ padding: '6px 10px', fontSize: '.88rem' }}>{item.descripcion}</td>
                               <td style={{ padding: '6px 10px', textAlign: 'center', fontSize: '.88rem' }}>{item.cantidad}</td>
+                              {esParcial && (
+                                <td style={{ padding: '6px 10px', textAlign: 'center' }}>
+                                  <input type="number" min="0" max={item.cantidad}
+                                    value={cantEntregada(item, 'parcial')}
+                                    onChange={e => cambiarCantEntregada(v.id, item.id, Math.max(0, Math.min(Number(item.cantidad), Number(e.target.value) || 0)))}
+                                    title="Cantidad realmente entregada"
+                                    style={{ width: 56, textAlign: 'center', fontSize: '.82rem', padding: '3px 4px', border: '1px solid #b07a0066', borderRadius: 5, fontWeight: 700, color: '#b07a00' }} />
+                                </td>
+                              )}
                               <td style={{ padding: '6px 10px', textAlign: 'right', fontSize: '.88rem' }}>{fmt(item.precio_unitario)}</td>
                               <td style={{ padding: '6px 10px', textAlign: 'right', fontWeight: 700, fontSize: '.88rem' }}>{fmt(item.subtotal)}</td>
                               {isAdmin && (
@@ -586,22 +610,29 @@ export default function Ventas() {
                       </tbody>
                     </table>
                     {(() => {
-                      const costoTotal = items.reduce((s, i) => s + (Number(i.costo || 0) * Number(i.cantidad)), 0)
-                      const margenNeto = Number(v.total) - costoTotal
-                      const pctTotal = v.total > 0 ? Math.round((margenNeto / Number(v.total)) * 100) : 0
+                      const ingresoReal = montoReal(v)
+                      const costoReal = costoRealVenta(v)
+                      const margenNeto = ingresoReal - costoReal
+                      const pctTotal = ingresoReal > 0 ? Math.round((margenNeto / ingresoReal) * 100) : 0
                       const tieneCosto = items.some(i => i.costo > 0)
+                      const noCompleto = estadoVenta(v) !== 'entregada'
                       return isAdmin && tieneCosto ? (
-                        <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 16, marginTop: 10, padding: '8px 10px', background: 'var(--bg)', borderRadius: 8 }}>
+                        <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 16, marginTop: 10, padding: '8px 10px', background: 'var(--bg)', borderRadius: 8, flexWrap: 'wrap' }}>
+                          {noCompleto && (
+                            <span style={{ fontSize: '.85rem', color: '#b07a00', fontWeight: 700 }}>
+                              Entregado: {fmt(ingresoReal)} de {fmt(v.total)}
+                            </span>
+                          )}
                           {v.descuento_global > 0 && (
                             <span style={{ fontSize: '.85rem', color: 'var(--danger)' }}>
                               Descuento global: {v.descuento_global}%
                             </span>
                           )}
                           <span style={{ fontSize: '.85rem', color: 'var(--text-secondary)' }}>
-                            Costo total: <strong>{fmt(costoTotal)}</strong>
+                            Costo {noCompleto ? 'real' : 'total'}: <strong>{fmt(costoReal)}</strong>
                           </span>
                           <span style={{ fontSize: '.85rem' }}>
-                            Margen neto: <strong style={{ color: pctTotal > 30 ? 'var(--green)' : pctTotal > 15 ? '#b07a00' : 'var(--danger)' }}>
+                            Margen {noCompleto ? 'real' : 'neto'}: <strong style={{ color: pctTotal > 30 ? 'var(--green)' : pctTotal > 15 ? '#b07a00' : 'var(--danger)' }}>
                               {fmt(margenNeto)} ({pctTotal}%)
                             </strong>
                           </span>

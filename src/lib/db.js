@@ -300,6 +300,19 @@ export async function updateVenta(id, changes) {
   return arr.find(v => v.id === id)
 }
 
+export async function updateVentaItem(id, changes) {
+  if (isSupabaseConfigured()) {
+    try {
+      const sb = await getSupabase()
+      const { data } = await sb.from('venta_items').update(changes).eq('id', id).select().single()
+      if (data) return data
+    } catch (e) { console.error('updateVentaItem error:', e) }
+  }
+  const arr = lsGet('em_venta_items').map(i => i.id === id ? { ...i, ...changes } : i)
+  lsSet('em_venta_items', arr)
+  return arr.find(i => i.id === id)
+}
+
 export async function deleteVenta(id) {
   if (isSupabaseConfigured()) {
     try {

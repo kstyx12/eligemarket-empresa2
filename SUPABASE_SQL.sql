@@ -114,6 +114,7 @@ create table if not exists venta_items (
   subtotal numeric default 0
 );
 alter table venta_items add column if not exists costo numeric default 0;
+alter table venta_items add column if not exists cantidad_entregada integer;  -- entregas parciales: cuánto se entregó del ítem
 
 -- 8. PEDIDOS_CLIENTE (pedidos entrantes desde el portal del cliente)
 create table if not exists pedidos_cliente (
