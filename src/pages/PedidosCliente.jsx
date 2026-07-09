@@ -84,6 +84,7 @@ export default function PedidosCliente() {
           vendedor_nombre: user.nombre,
           subtotal: total, descuento_global: 0, total,
           plazo_despacho: plazo,
+          estado_entrega: 'pendiente',
           created_at: new Date().toISOString()
         }
         const ventaItems = items.map(i => ({

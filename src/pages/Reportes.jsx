@@ -425,15 +425,23 @@ export default function Reportes() {
   const desgloseEntrega = useMemo(() => {
     const g = {}
     ORDEN_ESTADOS.forEach(e => { g[e] = { n: 0, monto: 0, teorico: 0 } })
+    let pendN = 0, pendTotal = 0, pendCosto = 0
     ventasFilt.forEach(v => {
       const e = estadoVenta(v)
       if (!g[e]) g[e] = { n: 0, monto: 0, teorico: 0 }
       g[e].n += 1
       g[e].monto += montoReal(v)
       g[e].teorico += Number(v.total || 0)
+      if (e === 'pendiente') {
+        pendN += 1
+        pendTotal += Number(v.total || 0)
+        pendCosto += (v.venta_items || []).reduce((s, i) => s + Number(i.costo || 0) * Number(i.cantidad || 0), 0)
+      }
     })
     const teoricoTotal = ventasFilt.reduce((s, v) => s + Number(v.total || 0), 0)
-    return { g, teoricoTotal, realTotal: totalVentas, perdido: teoricoTotal - totalVentas }
+    const pendMargen = pendTotal - pendCosto
+    const pend = { n: pendN, total: pendTotal, costo: pendCosto, margen: pendMargen, pct: pendTotal > 0 ? Math.round((pendMargen / pendTotal) * 100) : 0 }
+    return { g, teoricoTotal, realTotal: totalVentas, perdido: teoricoTotal - totalVentas, pend, potencialTotal: totalVentas + pendTotal }
   }, [ventasFilt, totalVentas])
 
   // Por categoría
@@ -826,6 +834,31 @@ export default function Reportes() {
                   )}
                 </div>
               </Card>
+
+              {/* Potencial de pedidos pendientes por entregar */}
+              {desgloseEntrega.pend.n > 0 && (
+                <Card title="⏳ Por entregar (potencial)">
+                  <div style={{ display: 'flex', gap: 24, flexWrap: 'wrap', alignItems: 'flex-start' }}>
+                    <div>
+                      <div style={{ fontSize: '.7rem', color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '.04em' }}>Pedidos pendientes</div>
+                      <div style={{ fontWeight: 800, fontSize: '1.4rem' }}>{desgloseEntrega.pend.n}</div>
+                    </div>
+                    <div>
+                      <div style={{ fontSize: '.7rem', color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '.04em' }}>Venta por entregar</div>
+                      <div style={{ fontWeight: 800, fontSize: '1.4rem' }}>{fmtMoney(desgloseEntrega.pend.total)}</div>
+                    </div>
+                    {isAdmin && rentabilidad.tieneCosto && (
+                      <div>
+                        <div style={{ fontSize: '.7rem', color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '.04em' }}>Margen potencial</div>
+                        <div style={{ fontWeight: 800, fontSize: '1.4rem', color: 'var(--green)' }}>{fmtMoney(desgloseEntrega.pend.margen)} <span style={{ fontSize: '.8rem', color: 'var(--text-secondary)' }}>({desgloseEntrega.pend.pct}%)</span></div>
+                      </div>
+                    )}
+                  </div>
+                  <div className="text-sm" style={{ marginTop: 10, paddingTop: 8, borderTop: '1px solid var(--border)', color: 'var(--text-secondary)' }}>
+                    💡 Si entregas todos los pendientes, la facturación real subiría a <strong style={{ color: 'var(--green)' }}>{fmtMoney(desgloseEntrega.potencialTotal)}</strong> — hoy real {fmtMoney(desgloseEntrega.realTotal)} + por entregar {fmtMoney(desgloseEntrega.pend.total)}.
+                  </div>
+                </Card>
+              )}
 
               {/* Crecimiento vs período anterior + Proyección del mes */}
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))', gap: 16, marginBottom: 16 }}>

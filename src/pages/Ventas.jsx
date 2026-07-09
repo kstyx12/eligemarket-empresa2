@@ -134,6 +134,7 @@ function NuevaVenta({ onBack }) {
         vendedor_nombre: user.nombre,
         subtotal, descuento_global: descGlobal, total: totalFinal,
         plazo_despacho: plazoDespacho,
+        estado_entrega: 'pendiente',
         created_at: new Date().toISOString()
       }
       const items = carrito.map(i => ({
