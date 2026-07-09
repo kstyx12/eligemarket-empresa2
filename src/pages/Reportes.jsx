@@ -29,6 +29,20 @@ function diasDesde(ts) {
   if (!ts) return null
   return Math.floor((Date.now() - new Date(ts).getTime()) / 86400000)
 }
+// Fecha LOCAL (zona horaria del navegador, ej. Chile) en YYYY-MM-DD.
+// Antes se usaba UTC (toISOString), lo que hacía que las ventas de la tarde
+// "saltaran" al día siguiente y desaparecieran del filtro "Hoy".
+function ymd(d) {
+  const x = d ? new Date(d) : new Date()
+  if (isNaN(x.getTime())) return ''
+  return `${x.getFullYear()}-${String(x.getMonth() + 1).padStart(2, '0')}-${String(x.getDate()).padStart(2, '0')}`
+}
+// Parsea "YYYY-MM-DD" como medianoche LOCAL (no UTC, como haría new Date(str)).
+function parseYmd(s) {
+  const [y, m, d] = String(s || '').split('-').map(Number)
+  if (!y) return new Date(NaN)
+  return new Date(y, m - 1, d)
+}
 function mediana(arr) {
   if (!arr.length) return 0
   const s = [...arr].sort((a, b) => a - b)
@@ -224,8 +238,8 @@ export default function Reportes() {
   const [loadingIA, setLoadingIA] = useState(false)
   const [errorIA, setErrorIA] = useState(null)
 
-  const hoy = new Date().toISOString().split('T')[0]
-  const inicioMes = new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString().split('T')[0]
+  const hoy = ymd(new Date())
+  const inicioMes = ymd(new Date(new Date().getFullYear(), new Date().getMonth(), 1))
 
   const [desde, setDesde] = useState(inicioMes)
   const [hasta, setHasta] = useState(hoy)
@@ -263,21 +277,21 @@ export default function Reportes() {
     } else if (p === 'semana') {
       const lunes = new Date(hoyDate)
       lunes.setDate(hoyDate.getDate() - hoyDate.getDay() + 1)
-      setDesde(lunes.toISOString().split('T')[0]); setHasta(hoy)
+      setDesde(ymd(lunes)); setHasta(hoy)
     } else if (p === 'mes') {
       setDesde(inicioMes); setHasta(hoy)
     } else if (p === 'trimestre') {
       const d = new Date(hoyDate); d.setMonth(d.getMonth() - 3)
-      setDesde(d.toISOString().split('T')[0]); setHasta(hoy)
+      setDesde(ymd(d)); setHasta(hoy)
     } else if (p === 'anio') {
-      setDesde(new Date(hoyDate.getFullYear(), 0, 1).toISOString().split('T')[0]); setHasta(hoy)
+      setDesde(ymd(new Date(hoyDate.getFullYear(), 0, 1))); setHasta(hoy)
     }
   }
 
   // Filtrar por rango y vendedor
   function filtrar(arr, campoFecha = 'created_at') {
     return arr.filter(x => {
-      const fecha = (x[campoFecha] || '').split('T')[0]
+      const fecha = ymd(x[campoFecha])
       if (desde && fecha < desde) return false
       if (hasta && fecha > hasta) return false
       if (filtroVendedor && String(x.vendedor_id) !== String(filtroVendedor)) return false
@@ -471,15 +485,15 @@ export default function Reportes() {
 
   const rangoPrevio = useMemo(() => {
     if (!desde || rangoDias <= 0) return null
-    const fin = new Date(desde); fin.setDate(fin.getDate() - 1)
+    const fin = parseYmd(desde); fin.setDate(fin.getDate() - 1)
     const ini = new Date(fin); ini.setDate(ini.getDate() - (rangoDias - 1))
-    return { desde: ini.toISOString().split('T')[0], hasta: fin.toISOString().split('T')[0] }
+    return { desde: ymd(ini), hasta: ymd(fin) }
   }, [desde, rangoDias])
 
   const crecimiento = useMemo(() => {
     if (!rangoPrevio) return null
     const prev = ventas.filter(v => {
-      const f = (v.created_at || '').split('T')[0]
+      const f = ymd(v.created_at)
       if (f < rangoPrevio.desde || f > rangoPrevio.hasta) return false
       if (filtroVendedor && String(v.vendedor_id) !== String(filtroVendedor)) return false
       return true
@@ -546,7 +560,7 @@ export default function Reportes() {
   const productosEstancados = useMemo(() => {
     const antes = new Map()
     ventas.forEach(v => {
-      const f = (v.created_at || '').split('T')[0]
+      const f = ymd(v.created_at)
       if (desde && f >= desde) return
       if (filtroVendedor && String(v.vendedor_id) !== String(filtroVendedor)) return
       ;(v.venta_items || []).forEach(i => {
@@ -639,11 +653,11 @@ export default function Reportes() {
 
   const ultimos14 = Array.from({ length: 14 }, (_, i) => {
     const d = new Date(); d.setDate(d.getDate() - (13 - i))
-    return d.toISOString().split('T')[0]
+    return ymd(d)
   })
   const ventasPorDia = ultimos14.map(dia => ({
     dia,
-    total: ventas.filter(v => v.created_at?.startsWith(dia) && (!filtroVendedor || String(v.vendedor_id) === String(filtroVendedor)))
+    total: ventas.filter(v => ymd(v.created_at) === dia && (!filtroVendedor || String(v.vendedor_id) === String(filtroVendedor)))
       .reduce((s, v) => s + (v.total || 0), 0)
   }))
 
