@@ -340,11 +340,12 @@ export default function Catalogo() {
               <table>
                 <thead>
                   <tr>
+                    <th>Foto</th>
                     <th>Código</th>
                     <th>Descripción</th>
                     <th>Categoría</th>
                     <th>Rol</th>
-                    <th>Precio</th>
+                    <th>Precios</th>
                     {isAdmin && <th>Costo</th>}
                     {isAdmin && <th>Margen</th>}
                     <th>Uds/Caja</th>
