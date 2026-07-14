@@ -244,12 +244,17 @@ export async function generarCatalogoPDF(productos, opciones = {}) {
   doc.rect(0, H * 0.55, W, H * 0.45, 'F')
 
   // Títulos
-  doc.setTextColor(255, 255, 255)
-  doc.setFont('helvetica', 'bold')
-  doc.setFontSize(48)
-  doc.text('Elige', W / 2, H / 2 - 18, { align: 'center' })
-  doc.setTextColor(255, 220, 100)
-  doc.text('Market', W / 2, H / 2 + 12, { align: 'center' })
+  if (logo) {
+    const L = 82
+    doc.setFillColor(255, 255, 255)
+    doc.roundedRect(W / 2 - L / 2 - 6, H / 2 - 70, L + 12, L + 12, 6, 6, 'F')
+    doc.addImage(logo, 'JPEG', W / 2 - L / 2, H / 2 - 64, L, L)
+  } else {
+    doc.setTextColor(255, 255, 255)
+    doc.setFont('helvetica', 'bold')
+    doc.setFontSize(46)
+    doc.text('DIMACE', W / 2, H / 2 - 15, { align: 'center' })
+  }
 
   doc.setTextColor(255, 255, 255)
   doc.setFont('helvetica', 'normal')
@@ -269,8 +274,8 @@ export async function generarCatalogoPDF(productos, opciones = {}) {
   doc.rect(0, H - 16, W, 16, 'F')
   doc.setTextColor(255, 255, 255)
   doc.setFontSize(9)
-  doc.text('Gestión Comercial · Vendedores en Ruta', W / 2, H - 6, { align: 'center' })
+  doc.text('Distribuidora Mayorista Central', W / 2, H - 6, { align: 'center' })
 
   const sufijo = ocultarSinStock ? '_sin_marcas' : ''
-  descargarPDF(doc, `catalogo_eligemarket${sufijo}_${new Date().toISOString().split('T')[0]}.pdf`)
+  descargarPDF(doc, `catalogo_dimace${sufijo}_${new Date().toISOString().split('T')[0]}.pdf`)
 }
