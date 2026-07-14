@@ -180,7 +180,7 @@ export default function Catalogo() {
       const blob = new Blob([buf], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' })
       const a = document.createElement('a')
       a.href = URL.createObjectURL(blob)
-      a.download = `catalogo_eligemarket_${new Date().toISOString().split('T')[0]}.xlsx`
+      a.download = `catalogo_dimace_${new Date().toISOString().split('T')[0]}.xlsx`
       a.click()
       toast('Excel descargado ✓', 'success')
     } catch (e) {

@@ -311,7 +311,7 @@ export default function Configuracion() {
       id: c.id, tipo: c.tipo, nombre: c.nombre, rut: c.rut, contacto: c.contacto,
       email: c.email, telefono: c.telefono, direccion: c.direccion,
       comuna: c.comuna, ciudad: c.ciudad, observaciones: c.observaciones
-    })), 'clientes_eligemarket.csv')
+    })), 'clientes_dimace.csv')
     toast('Clientes exportados', 'success')
   }
 
@@ -322,7 +322,7 @@ export default function Configuracion() {
       vendedor: v.vendedor_nombre, subtotal: v.subtotal,
       descuento: v.descuento_global, total: v.total,
       fecha: v.created_at?.split('T')[0]
-    })), 'ventas_eligemarket.csv')
+    })), 'ventas_dimace.csv')
     toast('Ventas exportadas', 'success')
   }
 
@@ -333,7 +333,7 @@ export default function Configuracion() {
       precio_venta: p.precio_venta, costo: p.costo, margen: p.margen,
       precio_volumen: p.precio_volumen, volumen_minimo: p.volumen_minimo,
       unidades_caja: p.unidades_caja, activo: p.activo
-    })), 'catalogo_eligemarket.csv')
+    })), 'catalogo_dimace.csv')
     toast('Catálogo exportado', 'success')
   }
 
