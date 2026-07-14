@@ -3,6 +3,7 @@ import { useState } from 'react'
 import { login as authLogin } from '../lib/auth.js'
 import { useAuth } from '../lib/context.jsx'
 import { Eye, EyeOff, AlertCircle } from 'lucide-react'
+import { LOGO_URL } from '../lib/logo.js'
 
 export default function Login() {
   const { login } = useAuth()
@@ -28,8 +29,8 @@ export default function Login() {
     <div className="login-page">
       <div className="login-card">
         <div className="login-logo">
-          <h1>Elige<span>Market</span></h1>
-          <p>Gestión Comercial · Vendedores en Ruta</p>
+          <img src={LOGO_URL} alt="DIMACE" style={{ width: 210, maxWidth: '100%', display: 'block', margin: '0 auto 6px' }} />
+          <p>Distribuidora Mayorista Central</p>
         </div>
 
         {error && (
@@ -91,7 +92,7 @@ export default function Login() {
         </form>
 
         <p style={{ marginTop: 20, textAlign: 'center', fontSize: '.8rem', color: 'var(--text-secondary)' }}>
-          v1.0 · EligeMarket &copy; 2024
+          v1.0 · DIMACE &copy; 2026
         </p>
       </div>
     </div>

@@ -1,4 +1,5 @@
 import { descargarPDF } from './pdfDownload.js'
+import { logoDataURL } from './logo.js'
 // src/lib/pdfCatalogo.js
 export async function generarCatalogoPDF(productos, opciones = {}) {
   // opciones.ocultarSinStock = true → muestra todos los productos pero sin el banner "SIN STOCK"
@@ -11,6 +12,7 @@ export async function generarCatalogoPDF(productos, opciones = {}) {
   const W = 210, H = 297
   const margin = 8
   const contentW = W - margin * 2
+  const logo = await logoDataURL()
 
   // Colores
   const ROJO = [192, 57, 43]
@@ -39,14 +41,16 @@ export async function generarCatalogoPDF(productos, opciones = {}) {
     // Header rojo
     doc.setFillColor(...ROJO)
     doc.rect(0, 0, W, 20, 'F')
-    // Logo
+    // Logo DIMACE (badge blanco a la izquierda)
+    if (logo) doc.addImage(logo, 'JPEG', margin, 2.5, 15, 15)
+    const tx = logo ? margin + 18 : margin
     doc.setTextColor(255, 255, 255)
     doc.setFont('helvetica', 'bold')
-    doc.setFontSize(13)
-    doc.text('EligeMarket', margin, 8)
-    doc.setFontSize(9)
+    doc.setFontSize(12)
+    doc.text('DIMACE', tx, 9)
+    doc.setFontSize(8.5)
     doc.setFont('helvetica', 'normal')
-    doc.text(cat.toUpperCase(), margin, 15)
+    doc.text(cat.toUpperCase(), tx, 15)
     // Derecha
     doc.setFontSize(8)
     doc.text('Catálogo de Productos', W - margin, 12, { align: 'right' })
@@ -57,7 +61,7 @@ export async function generarCatalogoPDF(productos, opciones = {}) {
     doc.setTextColor(255, 255, 255)
     doc.setFontSize(6.5)
     doc.setFont('helvetica', 'normal')
-    doc.text('EligeMarket · Catálogo Comercial', W / 2, H - 2.5, { align: 'center' })
+    doc.text('DIMACE · Distribuidora Mayorista Central', W / 2, H - 2.5, { align: 'center' })
     doc.setTextColor(30, 30, 30)
   }
 

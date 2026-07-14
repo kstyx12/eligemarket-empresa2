@@ -1,4 +1,5 @@
 import { descargarPDF } from './pdfDownload.js'
+import { logoDataURL } from './logo.js'
 // src/lib/pdfGenerator.js
 export async function generarPedidoPDF(venta, items, cliente, vendedor) {
   const { default: jsPDF } = await import('jspdf')
@@ -11,13 +12,16 @@ export async function generarPedidoPDF(venta, items, cliente, vendedor) {
   doc.setFillColor(26, 127, 75)
   doc.rect(0, 0, W, 38, 'F')
 
+  const logo = await logoDataURL()
+  if (logo) doc.addImage(logo, 'JPEG', margin, 6, 22, 22)
+  const tx = logo ? margin + 26 : margin
   doc.setTextColor(255, 255, 255)
-  doc.setFontSize(22)
+  doc.setFontSize(20)
   doc.setFont('helvetica', 'bold')
-  doc.text('EligeMarket', margin, 16)
-  doc.setFontSize(10)
+  doc.text('DIMACE', tx, 16)
+  doc.setFontSize(9)
   doc.setFont('helvetica', 'normal')
-  doc.text('Gestión Comercial · Vendedores en Ruta', margin, 23)
+  doc.text('Distribuidora Mayorista Central', tx, 23)
 
   // Número de pedido
   doc.setFontSize(16)
@@ -165,7 +169,7 @@ export async function generarPedidoPDF(venta, items, cliente, vendedor) {
   doc.rect(0, pageH - 10, W, 10, 'F')
   doc.setTextColor(255, 255, 255)
   doc.setFontSize(7)
-  doc.text('EligeMarket · Gestión Comercial de Vendedores en Ruta', W / 2, pageH - 4, { align: 'center' })
+  doc.text('DIMACE · Distribuidora Mayorista Central', W / 2, pageH - 4, { align: 'center' })
 
   const nombreCliente = (cliente?.nombre || 'cliente').replace(/[^a-z0-9]/gi, '_')
   descargarPDF(doc, `pedido_${venta.id || 'nuevo'}_${nombreCliente}.pdf`)

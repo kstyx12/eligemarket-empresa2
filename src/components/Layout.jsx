@@ -3,6 +3,7 @@ import { useNavigate, useLocation } from 'react-router-dom'
 import { useAuth } from '../lib/context.jsx'
 import { LayoutDashboard, Users, MapPin, Package, ShoppingCart, Settings, Menu, X, LogOut, Map, BarChart2, Bell } from 'lucide-react'
 import { countPedidosPendientes } from '../lib/db.js'
+import { LOGO_URL } from '../lib/logo.js'
 
 const NAV = [
   { label: 'Dashboard', path: '/', icon: LayoutDashboard },
@@ -37,7 +38,9 @@ export default function Layout({ children, title }) {
     <div className="app-layout">
       <div className={`sidebar-overlay ${open ? 'open' : ''}`} onClick={() => setOpen(false)} />
       <aside className={`sidebar ${open ? 'open' : ''}`}>
-        <div className="sidebar-logo"><h1>Elige<span>Market</span></h1></div>
+        <div className="sidebar-logo" style={{ padding: '10px 12px' }}>
+          <img src={LOGO_URL} alt="DIMACE" style={{ width: '100%', maxWidth: 170, display: 'block', margin: '0 auto', background: '#fff', borderRadius: 10, padding: 8 }} />
+        </div>
         <div className="sidebar-user">
           <div className="sidebar-user-avatar">{user?.nombre?.[0]?.toUpperCase() || 'U'}</div>
           <div className="sidebar-user-info">
