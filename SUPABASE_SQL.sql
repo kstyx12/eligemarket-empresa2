@@ -166,6 +166,13 @@ on conflict (username) do nothing;
 -- marcarlos como "public"):
 --   • fotos-clientes   (fotos de clientes y de visitas)
 --   • Fotos-productos   (fotos de productos — ojo: F mayúscula)
+-- Política para que la clave publicable (anon) pueda subir/leer/actualizar/borrar.
+-- Sin esto, las subidas fallan con "new row violates row-level security policy".
+drop policy if exists "fotos_publicas_all" on storage.objects;
+create policy "fotos_publicas_all" on storage.objects
+  for all to public
+  using (bucket_id in ('Fotos-productos', 'fotos-clientes'))
+  with check (bucket_id in ('Fotos-productos', 'fotos-clientes'));
 -- ═══════════════════════════════════════════════════════════
 
 -- ═══════════════════════════════════════════════════════════
