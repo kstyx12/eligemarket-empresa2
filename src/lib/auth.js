@@ -84,7 +84,27 @@ export function logout() {
   localStorage.removeItem('em_session')
 }
 
-export function changePassword(username, oldPass, newPass) {
+// Cambia la clave del propio usuario. Si el usuario vive en Supabase, la
+// actualiza ahí (antes solo escribía en localStorage y el cambio no servía).
+export async function changePassword(username, oldPass, newPass) {
+  if (isSupabaseConfigured()) {
+    try {
+      const sb = await getSupabase()
+      if (sb) {
+        const { data: existente } = await sb
+          .from('usuarios')
+          .select('id,password')
+          .eq('username', username.trim())
+          .maybeSingle()
+        if (existente) {
+          if (existente.password !== oldPass.trim()) return false // clave actual incorrecta
+          const { error } = await sb.from('usuarios').update({ password: newPass }).eq('id', existente.id)
+          return !error
+        }
+      }
+    } catch (e) { console.error('changePassword error:', e) }
+  }
+  // Fallback local (solo si el usuario no está en Supabase)
   const users = getLocalUsers()
   const idx = users.findIndex(u => u.username === username && u.password === oldPass)
   if (idx === -1) return false

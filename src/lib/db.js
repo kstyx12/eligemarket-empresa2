@@ -354,6 +354,22 @@ export async function createUsuario(usuario) {
   return nuevo
 }
 
+// Actualiza un usuario (p.ej. el admin cambia la clave de un vendedor).
+export async function updateUsuario(id, changes) {
+  if (isSupabaseConfigured()) {
+    try {
+      const sb = await getSupabase()
+      const { data, error } = await sb.from('usuarios').update(changes).eq('id', id).select('id, username, role, nombre').single()
+      if (error) throw error
+      if (data) return data
+    } catch (e) { console.error('updateUsuario error:', e); throw e }
+  }
+  const users = JSON.parse(localStorage.getItem('em_users') || '[]')
+  const arr = users.map(u => u.id === id ? { ...u, ...changes } : u)
+  localStorage.setItem('em_users', JSON.stringify(arr))
+  return arr.find(u => u.id === id)
+}
+
 export async function checkSupabaseConnection() {
   if (!isSupabaseConfigured()) return false
   try {

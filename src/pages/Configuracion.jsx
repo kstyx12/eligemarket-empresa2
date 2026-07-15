@@ -2,7 +2,7 @@
 import { useState, useEffect, useRef } from 'react'
 import Layout from '../components/Layout.jsx'
 import { useAuth, useToast } from '../lib/context.jsx'
-import { checkSupabaseConnection, getUsuarios, createUsuario, getClientes, getVentas, getProductos, updateProducto, createProducto } from '../lib/db.js'
+import { checkSupabaseConnection, getUsuarios, createUsuario, updateUsuario, getClientes, getVentas, getProductos, updateProducto, createProducto } from '../lib/db.js'
 import { changePassword } from '../lib/auth.js'
 import { Settings, Wifi, RefreshCw, User, Key, Plus, Download, X, Check, Upload, FileSpreadsheet, AlertCircle } from 'lucide-react'
 import { SUPABASE_URL } from '../lib/supabase.js'
@@ -286,7 +286,7 @@ export default function Configuracion() {
     if (pwForm.new1 !== pwForm.new2) { toast('Las contraseñas no coinciden', 'error'); return }
     if (pwForm.new1.length < 4) { toast('Mínimo 4 caracteres', 'error'); return }
     setPwSaving(true)
-    const ok = changePassword(user.username, pwForm.old, pwForm.new1)
+    const ok = await changePassword(user.username, pwForm.old, pwForm.new1)
     setPwSaving(false)
     if (ok) { toast('Contraseña actualizada', 'success'); setPwForm({ old: '', new1: '', new2: '' }) }
     else toast('Contraseña actual incorrecta', 'error')
@@ -303,6 +303,17 @@ export default function Configuracion() {
       getUsuarios().then(setUsuarios)
     } catch (e) { toast('Error al crear usuario', 'error') }
     setUserSaving(false)
+  }
+
+  // El admin cambia la clave de un usuario que no es admin (p.ej. un vendedor que la olvidó).
+  async function resetClave(u) {
+    const nueva = window.prompt(`Nueva clave para @${u.username} (${u.nombre}):`)
+    if (nueva === null) return
+    if (nueva.trim().length < 4) { toast('La clave debe tener al menos 4 caracteres', 'error'); return }
+    try {
+      await updateUsuario(u.id, { password: nueva.trim() })
+      toast(`Clave de @${u.username} actualizada`, 'success')
+    } catch (e) { toast('No se pudo actualizar la clave', 'error') }
   }
 
   async function exportClientes() {
@@ -416,7 +427,14 @@ export default function Configuracion() {
                     <div style={{ fontWeight: 600 }}>{u.nombre}</div>
                     <div className="text-xs text-muted">@{u.username}</div>
                   </div>
-                  <span className={`badge ${u.role === 'admin' ? 'badge-green' : 'badge-blue'}`}>{u.role}</span>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+                    <span className={`badge ${u.role === 'admin' ? 'badge-green' : 'badge-blue'}`}>{u.role}</span>
+                    {u.role !== 'admin' && (
+                      <button className="btn btn-secondary btn-sm" onClick={() => resetClave(u)} title={`Cambiar la clave de @${u.username}`}>
+                        <Key size={13} /> Cambiar clave
+                      </button>
+                    )}
+                  </div>
                 </div>
               ))}
             </div>
