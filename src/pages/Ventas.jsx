@@ -149,7 +149,7 @@ function NuevaVenta({ onBack }) {
       toast('Pedido guardado correctamente', 'success')
       await generarPedidoPDF({ ...ventaData, id: venta.id }, items, clienteSelected, user)
       navigate('/ventas')
-    } catch (e) { toast('Error al guardar', 'error') }
+    } catch (e) { toast('No se guardó el pedido. Revisa tu conexión e intenta de nuevo.', 'error') }
     setSaving(false)
   }
 

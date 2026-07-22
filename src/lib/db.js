@@ -270,13 +270,25 @@ export async function createVenta(venta, items) {
   if (isSupabaseConfigured()) {
     try {
       const sb = await getSupabase()
-      const { data: ventaData } = await sb.from('ventas').insert(venta).select().single()
-      if (ventaData) {
-        const itemsToInsert = items.map(i => ({ ...i, venta_id: ventaData.id }))
-        await sb.from('venta_items').insert(itemsToInsert)
-        return ventaData
+      // Todo o nada: nunca dejar una venta con total pero sin productos.
+      const { data: ventaData, error: errVenta } = await sb.from('ventas').insert(venta).select().single()
+      if (errVenta || !ventaData) throw errVenta || new Error('No se pudo crear la venta')
+      const itemsToInsert = (items || []).map(i => ({ ...i, venta_id: ventaData.id }))
+      if (itemsToInsert.length) {
+        const { error: errItems } = await sb.from('venta_items').insert(itemsToInsert)
+        if (errItems) {
+          // Rollback: borramos la venta para que no quede huérfana
+          await sb.from('ventas').delete().eq('id', ventaData.id)
+          throw errItems
+        }
       }
-    } catch (e) { console.error('createVenta error:', e) }
+      return ventaData
+    } catch (e) {
+      console.error('createVenta error:', e)
+      // Propagamos el error: es preferible que el vendedor reintente
+      // a que crea que guardó una venta incompleta.
+      throw e
+    }
   }
   const arr = lsGet('em_ventas')
   const nuevo = { ...venta, id: nextId(arr), created_at: new Date().toISOString() }
